@@ -1,13 +1,15 @@
 from django.conf import settings
 from django.core.urlresolvers import resolve
 import sys
-import urllib2
+import urllib.request as urllib2
 import traceback
 from lxml import etree
-
+import os
 
 class Client(object):
-    API_URL = '%s://airbrake.io/notifier_api/v2/notices'
+    HOST = os.environ.get( "ERRBIT_HOST", "localhost" )
+    PORT = os.environ.get( "ERRBIT_PORT", "80" )
+    API_URL = '%s://%s:%s/notifier_api/v2/notices'
     ERRORS = {
         403: "Cannot use SSL",
         422: "Invalid XML sent to Airbrake",
@@ -25,7 +27,7 @@ class Client(object):
         if self.settings['USE_SSL']:
             scheme = 'https'
 
-        return Client.API_URL % scheme
+        return Client.API_URL % ( scheme, HOST, PORT )
 
     @property
     def settings(self):
@@ -113,5 +115,4 @@ class Client(object):
         env_em = etree.SubElement(notice_em, 'server-environment')
 
         etree.SubElement(env_em, 'environment-name').text = getattr(settings, 'ENVIRONMENT', 'development')
-
-        return '<?xml version="1.0" encoding="UTF-8"?>%s' % etree.tostring(notice_em)
+        return '<?xml version="1.0" encoding="UTF-8"?>'.encode(encoding='UTF-8') + etree.tostring(notice_em)
